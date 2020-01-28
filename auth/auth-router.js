@@ -1,5 +1,5 @@
-const bcrypt = require('bcryptjs');
 const router = require('express').Router();
+const bcrypt = require('bcryptjs');
 
 const Users = require('../users/users-model');
 
@@ -26,6 +26,9 @@ router.post('/login', (req, res) => {
         .first()
         .then(user => {
             if (user && bcrypt.compareSync(password, user.password)) {
+                req.session.loggedIn = true;
+                req.session.userId = user.id;
+
                 res.status(200).json({ message: `Welcome ${user.username}` })
             } else {
                 res.status(401).json({ message: "You shall not pass!"});
@@ -36,22 +39,17 @@ router.post('/login', (req, res) => {
         })
 })
 
-router.get('/users', (req, res) => {
-    if (req.headers.authorization) {
-        Users.findBy(req.headers.authorization)
-            .first()
-            .then(user => {
-                if (user && bcrypt.compareSync(req.headers.authorization, user.username)) {
-                    Users.find()
-                } else {
-                    res.status(401).json({error: "you shall not pass"})
-                }
-            })
-            .catch(error => {
-                res.status(400).json({error: "Error retrieving users"})
-            })
+router.get('/logout', (req, res) => {
+    if (req.session) {
+        req.session.destroy(error => {
+            if (error) {
+                res.status(500).json({error: "you can checkout any time you like, but you can never leave!"})
+            } else {
+                res.status(200).json({message: "Thanks for playing"});
+            }
+        })
     } else {
-        res.status(400).json({ error: "missing header"})
+        res.status(204);
     }
 })
 
